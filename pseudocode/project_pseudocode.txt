@@ -1,0 +1,96 @@
+\section{Combined System Pseudocode}
+
+The following pseudocode represents the full operation of the Smart Traffic Intersection Simulator. The system is organized into five major functionalities: vehicle generation, queue management with physical movement, sensor detection, traffic light control with adaptive timing and emergency override, and traffic processing/output.
+
+\begin{verbatim}
+START SmartTrafficIntersectionSimulator
+
+INITIALIZE northSouthQueue
+INITIALIZE eastWestQueue
+INITIALIZE northSouthSensor
+INITIALIZE eastWestSensor
+INITIALIZE trafficLight with NS_GREEN state
+SET currentTimeStep = 1
+INPUT maxSteps
+
+WHILE currentTimeStep <= maxSteps
+
+    --------------------------------------------------
+    FUNCTIONALITY 1: VEHICLE GENERATION
+    --------------------------------------------------
+    GENERATE random number
+
+    IF vehicle is created THEN
+        CREATE Vehicle
+        ASSIGN ID
+        ASSIGN direction (NS or EW)
+        ASSIGN emergency status
+        SET position = 10.0
+        SET speed based on vehicle type
+    ENDIF
+
+    --------------------------------------------------
+    FUNCTIONALITY 2: QUEUE MANAGEMENT AND MOVEMENT
+    --------------------------------------------------
+    IF vehicle direction is NS THEN
+        ADD vehicle to northSouthQueue
+    ELSE
+        ADD vehicle to eastWestQueue
+    ENDIF
+
+    FOR front vehicle in each queue
+        IF light is GREEN for that direction THEN
+            MOVE vehicle (position decreases)
+        ELSE
+            STOP vehicle at position = 1.0
+        ENDIF
+    ENDFOR
+
+    --------------------------------------------------
+    FUNCTIONALITY 3: SENSOR DETECTION
+    --------------------------------------------------
+    COUNT vehicles using sensors
+    CHECK for emergency vehicles in both queues
+
+    --------------------------------------------------
+    FUNCTIONALITY 4: TRAFFIC LIGHT CONTROL + ADAPTIVE TIMING + EMERGENCY OVERRIDE
+    --------------------------------------------------
+    IF emergency vehicle detected THEN
+        FORCE green light for that direction
+        SET emergency timer
+    ELSE
+        COMPARE NS and EW queue sizes
+
+        IF NS > EW THEN
+            INCREASE NS green time
+        ELSE IF EW > NS THEN
+            INCREASE EW green time
+        ENDIF
+
+        UPDATE traffic light using FSM:
+            NS_GREEN → NS_YELLOW → ALL_RED → EW_GREEN
+            EW_GREEN → EW_YELLOW → ALL_RED → NS_GREEN
+    ENDIF
+
+    --------------------------------------------------
+    FUNCTIONALITY 5: PROCESS TRAFFIC AND OUTPUT
+    --------------------------------------------------
+    IF NS light is green THEN
+        REMOVE vehicle from northSouthQueue
+    ELSE IF EW light is green THEN
+        REMOVE vehicle from eastWestQueue
+    ENDIF
+
+    DISPLAY:
+        time step
+        light state
+        timer
+        sensor counts
+        vehicle positions
+
+    INCREMENT currentTimeStep
+
+ENDWHILE
+
+END SmartTrafficIntersectionSimulator
+\end{verbatim}
