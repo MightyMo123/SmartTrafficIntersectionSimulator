@@ -38,7 +38,6 @@ int Statistics::getTotalGenerated() const { return totalGenerated; }
 int Statistics::getTotalProcessed() const { return totalProcessed; }
 int Statistics::getEmergencyProcessed() const { return emergencyProcessed; }
 
-
 double Statistics::getAverageWaitTime() const {
     return totalProcessed == 0 ? 0.0 : static_cast<double>(totalWaitTime) / totalProcessed;
 }
@@ -60,17 +59,17 @@ double Statistics::getThroughputPercent() const {
 
 std::string Statistics::summary(const std::string& strategyName) const {
     std::ostringstream out;
-    out << "\n========== PERFORMANCE SUMMARY: " << strategyName << " ==========\n";
-    out << "Total vehicles generated: " << totalGenerated << "\n";
-    out << "Total vehicles processed: " << totalProcessed << "\n";
-    out << "Emergency vehicles processed: " << emergencyProcessed << "\n";
+    out << "\n==================== Final Results: " << strategyName << " ====================\n";
+    out << "Total vehicles created:           " << totalGenerated << "\n";
+    out << "Total vehicles that got through:  " << totalProcessed << "\n";
+    out << "Emergency vehicles that got through: " << emergencyProcessed << "\n";
     out << std::fixed << std::setprecision(2);
-    out << "Average wait time: " << getAverageWaitTime() << " steps\n";
-    out << "Average NS queue length: " << getAverageNSQueueLength() << "\n";
-    out << "Average EW queue length: " << getAverageEWQueueLength() << "\n";
-    out << "Max NS queue length: " << maxNSQueueLength << "\n";
-    out << "Max EW queue length: " << maxEWQueueLength << "\n";
-    out << "Throughput: " << getThroughputPercent() << "%\n";
-    out << "========================================================\n";
+    out << "Average wait time:                " << getAverageWaitTime() << " step(s)\n";
+    out << "Average North-South queue:        " << getAverageNSQueueLength() << "\n";
+    out << "Average East-West queue:          " << getAverageEWQueueLength() << "\n";
+    out << "Longest North-South queue:        " << maxNSQueueLength << "\n";
+    out << "Longest East-West queue:          " << maxEWQueueLength << "\n";
+    out << "Throughput:                       " << getThroughputPercent() << "%\n";
+    out << "================================================================\n";
     return out.str();
 }

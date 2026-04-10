@@ -6,6 +6,10 @@ TrafficLight::TrafficLight() {
     yellowDuration = 2;
     allRedDuration = 1;
     nextDirection = "EW";
+    emergencyOverrideActive = false;
+    emergencyDirection = "NONE";
+    savedDirection = "NS";
+    savedGreenRemaining = 3;
 }
 
 string TrafficLight::getCurrentState() const {
@@ -16,10 +20,51 @@ int TrafficLight::getTimer() const {
     return timer;
 }
 
-void TrafficLight::forceGreen(string priorityDirection, int greenTime) {
+string TrafficLight::getCurrentGreenDirection() const {
+    if (currentState.rfind("NS", 0) == 0) {
+        return "NS";
+    }
+    if (currentState.rfind("EW", 0) == 0) {
+        return "EW";
+    }
+    return nextDirection;
+}
+
+bool TrafficLight::isEmergencyOverrideActive() const {
+    return emergencyOverrideActive;
+}
+
+void TrafficLight::setNextDirection(const string& preferredDirection) {
+    if (preferredDirection == "NS" || preferredDirection == "EW") {
+        nextDirection = preferredDirection;
+    }
+}
+
+void TrafficLight::forceGreen(const string& priorityDirection, int greenTime) {
+    if (!emergencyOverrideActive) {
+        savedDirection = getCurrentGreenDirection();
+        savedGreenRemaining = (currentState.find("GREEN") != string::npos) ? timer : 3;
+        if (savedGreenRemaining < 2) {
+            savedGreenRemaining = 2;
+        }
+    }
+
+    emergencyOverrideActive = true;
+    emergencyDirection = priorityDirection;
     currentState = priorityDirection + "_GREEN";
     timer = greenTime;
-    nextDirection = (priorityDirection == "NS") ? "EW" : "NS";
+}
+
+void TrafficLight::restoreInterruptedFlow() {
+    if (!emergencyOverrideActive) {
+        return;
+    }
+
+    currentState = savedDirection + "_GREEN";
+    timer = savedGreenRemaining;
+    nextDirection = (savedDirection == "NS") ? "EW" : "NS";
+    emergencyOverrideActive = false;
+    emergencyDirection = "NONE";
 }
 
 void TrafficLight::update(int nsGreenTime, int ewGreenTime) {
@@ -36,7 +81,6 @@ void TrafficLight::update(int nsGreenTime, int ewGreenTime) {
     else if (currentState == "NS_YELLOW") {
         currentState = "ALL_RED";
         timer = allRedDuration;
-        nextDirection = "EW";
     }
     else if (currentState == "EW_GREEN") {
         currentState = "EW_YELLOW";
@@ -45,7 +89,6 @@ void TrafficLight::update(int nsGreenTime, int ewGreenTime) {
     else if (currentState == "EW_YELLOW") {
         currentState = "ALL_RED";
         timer = allRedDuration;
-        nextDirection = "NS";
     }
     else if (currentState == "ALL_RED") {
         if (nextDirection == "NS") {

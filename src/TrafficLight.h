@@ -12,13 +12,22 @@ private:
     int allRedDuration;
     string nextDirection;
 
+    bool emergencyOverrideActive;
+    string emergencyDirection;
+    string savedDirection;
+    int savedGreenRemaining;
+
 public:
     TrafficLight();
 
     string getCurrentState() const;
     int getTimer() const;
+    string getCurrentGreenDirection() const;
+    bool isEmergencyOverrideActive() const;
 
-    void forceGreen(string priorityDirection, int greenTime);
+    void setNextDirection(const string& preferredDirection);
+    void forceGreen(const string& priorityDirection, int greenTime);
+    void restoreInterruptedFlow();
     void update(int nsGreenTime, int ewGreenTime);
 };
 

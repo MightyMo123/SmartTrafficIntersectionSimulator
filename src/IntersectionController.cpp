@@ -1,10 +1,11 @@
 #include "IntersectionController.h"
 #include <iostream>
+#include <iomanip>
 using namespace std;
 
 IntersectionController::IntersectionController(unique_ptr<SignalStrategy> timingStrategy)
     : strategy(std::move(timingStrategy)) {
-    emergencyGreenTime = 6;
+    emergencyGreenTime = 4;
 }
 
 void IntersectionController::addVehicle(const Vehicle& vehicle) {
@@ -30,25 +31,33 @@ string IntersectionController::detectEmergencyDirection() const {
 
 void IntersectionController::handleEmergencyOverride() {
     string emergencyDirection = detectEmergencyDirection();
-    string currentState = light.getCurrentState();
+    string currentDirection = light.getCurrentGreenDirection();
 
     if (emergencyDirection == "NONE") {
         return;
     }
 
-    if ((emergencyDirection == "NS" && currentState == "NS_GREEN") ||
-        (emergencyDirection == "EW" && currentState == "EW_GREEN")) {
+    if (emergencyDirection == currentDirection && light.getCurrentState().find("GREEN") != string::npos) {
         return;
     }
 
-    light.forceGreen(emergencyDirection, emergencyGreenTime);
-    cout << ">>> EMERGENCY OVERRIDE ACTIVATED for " << emergencyDirection << " direction!\n";
+    if (!light.isEmergencyOverrideActive()) {
+        light.forceGreen(emergencyDirection, emergencyGreenTime);
+        cout << "[Emergency Override] An emergency vehicle was detected in the "
+             << emergencyDirection << " direction. The light was temporarily switched to give it priority.\n";
+    }
 }
 
 void IntersectionController::updateLight() {
     int nsCount = nsSensor.countVehicles(northSouthQueue);
     int ewCount = ewSensor.countVehicles(eastWestQueue);
     auto greenTimes = strategy->getGreenTimes(nsCount, ewCount);
+
+    if (!light.isEmergencyOverrideActive() && light.getCurrentState() == "ALL_RED") {
+        string preferredDirection = strategy->choosePriorityDirection(nsCount, ewCount, light.getCurrentGreenDirection());
+        light.setNextDirection(preferredDirection);
+    }
+
     light.update(greenTimes.first, greenTimes.second);
 }
 
@@ -111,18 +120,32 @@ void IntersectionController::processTraffic() {
         northSouthQueue.pop();
 
         stats.recordProcessedVehicle(vehicle.isEmergencyVehicle(), vehicle.getWaitTime());
-        cout << "Vehicle ID " << vehicle.getId()
-             << " (" << vehicle.getType() << ") passed in NS direction after waiting "
-             << vehicle.getWaitTime() << " step(s).\n";
+        cout << "Vehicle " << vehicle.getId() << " cleared the intersection going North-South"
+             << " | type: " << vehicle.getType()
+             << " | waited: " << vehicle.getWaitTime() << " step(s)\n";
+
+        if (vehicle.isEmergencyVehicle() && light.isEmergencyOverrideActive()) {
+            if (!nsSensor.detectEmergencyVehicle(northSouthQueue)) {
+                light.restoreInterruptedFlow();
+                cout << "[Emergency Override Ended] The emergency vehicle has passed. The light returned to the traffic flow that was active before the interruption.\n";
+            }
+        }
     }
     else if (currentState == "EW_GREEN" && !eastWestQueue.empty()) {
         Vehicle vehicle = eastWestQueue.front();
         eastWestQueue.pop();
 
         stats.recordProcessedVehicle(vehicle.isEmergencyVehicle(), vehicle.getWaitTime());
-        cout << "Vehicle ID " << vehicle.getId()
-             << " (" << vehicle.getType() << ") passed in EW direction after waiting "
-             << vehicle.getWaitTime() << " step(s).\n";
+        cout << "Vehicle " << vehicle.getId() << " cleared the intersection going East-West"
+             << " | type: " << vehicle.getType()
+             << " | waited: " << vehicle.getWaitTime() << " step(s)\n";
+
+        if (vehicle.isEmergencyVehicle() && light.isEmergencyOverrideActive()) {
+            if (!ewSensor.detectEmergencyVehicle(eastWestQueue)) {
+                light.restoreInterruptedFlow();
+                cout << "[Emergency Override Ended] The emergency vehicle has passed. The light returned to the traffic flow that was active before the interruption.\n";
+            }
+        }
     }
 }
 
@@ -132,27 +155,29 @@ void IntersectionController::recordQueueSnapshot() {
 }
 
 void IntersectionController::displayState(int timeStep) const {
-    cout << "\n========================================\n";
-    cout << "Time Step: " << timeStep << endl;
-    cout << "Control Strategy: " << strategy->getName() << endl;
-    cout << "Traffic Light State: " << light.getCurrentState() << endl;
-    cout << "Light Timer: " << light.getTimer() << endl;
-    cout << "NS Sensor Count: " << nsSensor.countVehicles(northSouthQueue) << endl;
-    cout << "EW Sensor Count: " << ewSensor.countVehicles(eastWestQueue) << endl;
+    cout << "\n----------------------------------------\n";
+    cout << "Step " << timeStep << " snapshot\n";
+    cout << "Control mode: " << strategy->getName() << "\n";
+    cout << "Current light: " << light.getCurrentState() << "\n";
+    cout << "Time remaining in this light: " << light.getTimer() << " step(s)\n";
+    cout << "Cars waiting North-South: " << nsSensor.countVehicles(northSouthQueue) << "\n";
+    cout << "Cars waiting East-West:   " << ewSensor.countVehicles(eastWestQueue) << "\n";
 
     if (!northSouthQueue.empty()) {
-        cout << "Front NS Vehicle Position: " << northSouthQueue.front().getPosition() << endl;
+        cout << "Front North-South vehicle distance from stop line: "
+             << fixed << setprecision(1) << northSouthQueue.front().getPosition() << " units\n";
     } else {
-        cout << "Front NS Vehicle Position: none" << endl;
+        cout << "Front North-South vehicle distance from stop line: none\n";
     }
 
     if (!eastWestQueue.empty()) {
-        cout << "Front EW Vehicle Position: " << eastWestQueue.front().getPosition() << endl;
+        cout << "Front East-West vehicle distance from stop line:   "
+             << fixed << setprecision(1) << eastWestQueue.front().getPosition() << " units\n";
     } else {
-        cout << "Front EW Vehicle Position: none" << endl;
+        cout << "Front East-West vehicle distance from stop line:   none\n";
     }
 
-    cout << "========================================\n";
+    cout << "----------------------------------------\n";
 }
 
 string IntersectionController::getStrategyName() const {

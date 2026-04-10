@@ -13,24 +13,25 @@ void Simulator::generateVehicle() {
     const VehicleEvent& event = scheduledEvents[currentTimeStep - 1];
 
     if (!event.generated) {
-        cout << "No vehicle generated this step.\n";
+        cout << "No new vehicle arrived during this step.\n";
         return;
     }
 
     Vehicle newVehicle(nextVehicleId, event.direction, event.emergency);
     controller.addVehicle(newVehicle);
 
-    cout << "Generated Vehicle ID " << nextVehicleId
-         << " | Direction: " << newVehicle.getDirection()
-         << " | Type: " << newVehicle.getType()
-         << " | Start Position: " << newVehicle.getPosition() << endl;
+    cout << "New vehicle added"
+         << " | ID: " << nextVehicleId
+         << " | direction: " << ((newVehicle.getDirection() == "NS") ? "North-South" : "East-West")
+         << " | type: " << newVehicle.getType()
+         << " | starting distance: " << newVehicle.getPosition() << " units\n";
 
     nextVehicleId++;
 }
 
 void Simulator::run() {
     while (currentTimeStep <= maxSteps) {
-        cout << "\n----- SIMULATION STEP " << currentTimeStep << " -----\n";
+        cout << "\n========== Simulation Step " << currentTimeStep << " ==========" << "\n";
 
         generateVehicle();
         controller.handleEmergencyOverride();

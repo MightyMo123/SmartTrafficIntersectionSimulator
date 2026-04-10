@@ -24,27 +24,30 @@ static vector<VehicleEvent> buildScenario(int steps) {
 
 int main() {
     cout << "===== Smart Traffic Intersection Simulator =====\n";
+    cout << "This program runs the same traffic scenario twice:\n";
+    cout << "1. Fixed timing\n";
+    cout << "2. Adaptive timing\n\n";
 
     int steps;
-    cout << "Enter number of simulation steps: ";
+    cout << "Enter how many simulation steps you want to run: ";
     cin >> steps;
 
     if (steps <= 0) {
-        cout << "Invalid input. Exiting program.\n";
+        cout << "That input is not valid. Program will now stop.\n";
         return 1;
     }
 
     srand(static_cast<unsigned int>(time(0)));
     vector<VehicleEvent> scenario = buildScenario(steps);
 
-    cout << "\n===== RUN 1: FIXED-TIMING BASELINE =====\n";
+    cout << "\n===== Run 1: Fixed Timing Baseline =====\n";
     Simulator fixedSimulator(steps, std::unique_ptr<SignalStrategy>(new FixedTimingStrategy()), scenario);
     fixedSimulator.run();
 
-    cout << "\n===== RUN 2: ADAPTIVE-TIMING OPTIMIZATION =====\n";
+    cout << "\n===== Run 2: Adaptive Timing =====\n";
     Simulator adaptiveSimulator(steps, std::unique_ptr<SignalStrategy>(new AdaptiveTimingStrategy()), scenario);
     adaptiveSimulator.run();
 
-    cout << "\nSimulation comparison finished successfully.\n";
+    cout << "\nBoth runs are complete. Compare the final results above.\n";
     return 0;
 }
